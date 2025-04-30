@@ -191,6 +191,33 @@ export function useWalletConnection() {
     setShowWalletModal,
     connectSpecificWallet,
     selectedWallet,
-    supportedWallets: SUPPORTED_WALLETS
+    supportedWallets: SUPPORTED_WALLETS,
+    /**
+     * 获取所有可用账户（主动请求授权）
+     * @returns Promise<string[]> 所有账户地址
+     */
+    getAccounts: async () => {
+      if (typeof window === 'undefined' || !(window as any).ethereum) {
+        return [];
+      }
+      try {
+        const provider = (window as any).ethereum as MetaMaskInpageProvider;
+        // 主动请求授权，弹窗让用户勾选多个账户
+        const accounts = await provider.request({ method: 'eth_requestAccounts' }) as string[];
+        return accounts || [];
+      } catch (error) {
+        console.error('获取账户列表失败:', error);
+        return [];
+      }
+    },
+    /**
+     * 切换当前钱包账户
+     * @param address 目标账户地址
+     */
+    switchAccount: async (address: string) => {
+      if (!address) return;
+      setWalletAddress(address);
+      localStorage.setItem('walletAddress', address);
+    }
   };
 }

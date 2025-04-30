@@ -154,7 +154,7 @@ export default function NFTGallery({ isConnected, walletAddress, onSelectNFT }: 
                       <h3 className="text-lg font-bold">{nft.name}</h3>
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-gray-300">稀有度: {nft.rarity}%</span>
-                        <span className="text-yellow-400">战力: {nft.power}</span>
+                        <span className="text-yellow-400">搞笑值: {nft.power}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <button 
@@ -168,7 +168,7 @@ export default function NFTGallery({ isConnected, walletAddress, onSelectNFT }: 
                             });
                           }}
                         >
-                          使用
+                          去战斗
                         </button>
                         <button className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-full text-sm transition-all">
                           交易

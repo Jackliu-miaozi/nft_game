@@ -72,52 +72,69 @@ export default function MintSection({ isConnected, walletAddress }: MintSectionP
             alert('请先连接钱包');
             return;
         }
-
+    
         if (!selectedImage || !nftName) {
             alert('请选择图片并输入NFT名称');
             return;
         }
-
+    
         setIsUploading(true);
         try {
             // 检查是否存在以太坊提供者
             if (typeof window === 'undefined' || !(window as any).ethereum) {
                 throw new Error('未检测到Web3钱包');
             }
-
+    
             // 创建钱包客户端
             const client = createWalletClient({
                 transport: custom((window as any).ethereum)
             });
-
+    
             // 生成待签名消息
             const message = generateMintMessage(nftName);
             const messageHash = hashMessage(message);
-
+    
             // 请求用户签名
             const signature = await client.signMessage({
                 message,
                 account: walletAddress as `0x${string}`
             });
-
+    
             // 验证签名
             const isValid = await verifyMessage({
                 message,
                 signature,
                 address: walletAddress as `0x${string}`
             });
-
+    
             if (!isValid) {
                 throw new Error('签名验证失败');
             }
-
+    
             // 签名验证通过，继续铸造流程
             const reader = new FileReader();
             reader.onloadend = async () => {
                 const base64Image = reader.result as string;
+    
+                // 1. 调用大模型API获取搞笑值
+                let funniness = 0;
+                try {
+                    const response = await fetch('/api/funniness', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            image: base64Image,
+                        })
+                    });
+                    const data = await response.json();
+                    funniness = typeof data.funniness === 'number' ? data.funniness : Math.floor(Math.random() * 100);
+                } catch (e) {
+                    // 如果大模型API失败，降级为随机值
+                    funniness = Math.floor(Math.random() * 100);
+                }
+    
                 const rarity = Math.floor(Math.random() * 100);
-                const power = Math.floor(Math.random() * 100);
-
+                // 2. 用搞笑值作为power或单独字段
                 createNFTMutation.mutate({
                     tokenId: `${Date.now()}`,
                     ownerAddress: walletAddress,
@@ -125,7 +142,7 @@ export default function MintSection({ isConnected, walletAddress }: MintSectionP
                     name: nftName,
                     description: description,
                     rarity: rarity,
-                    power: power,
+                    power: funniness, // 用搞笑值作为power
                     signature,        // 添加签名
                     message,         // 添加消息
                     messageHash      // 添加消息哈希
