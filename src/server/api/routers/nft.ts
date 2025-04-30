@@ -78,6 +78,9 @@ export const nftRouter = createTRPCRouter({
       description: z.string().optional(),
       rarity: z.number().min(0).max(100),
       power: z.number().min(0),
+      signature: z.string(),    // 签名
+      message: z.string(),      // 原始消息
+      messageHash: z.string()   // 消息哈希
     }))
     .mutation(async ({ ctx, input }) => {
       try {
@@ -136,6 +139,58 @@ export const nftRouter = createTRPCRouter({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "更新NFT所有者失败",
+          cause: error,
+        });
+      }
+    }),
+
+  /**
+   * 删除指定的NFT
+   * 只有NFT的所有者才能删除
+   */
+  deleteNFT: publicProcedure
+    .input(z.object({
+      tokenId: z.string(),
+      ownerAddress: z.string(),
+      signature: z.string(),    // 签名
+      message: z.string(),      // 原始消息
+      messageHash: z.string()   // 消息哈希
+    }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        // 首先检查NFT是否存在且属于该用户
+        const nft = await ctx.db
+          .select()
+          .from(nftImages)
+          .where(eq(nftImages.tokenId, input.tokenId))
+          .limit(1);
+
+        if (!nft.length) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "NFT不存在",
+          });
+        }
+
+        if (nft[0]?.ownerAddress !== input.ownerAddress) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "您不是该NFT的所有者，无权删除",
+          });
+        }
+
+        // 执行删除操作
+        const deletedNFT = await ctx.db
+          .delete(nftImages)
+          .where(eq(nftImages.tokenId, input.tokenId))
+          .returning();
+
+        return deletedNFT[0];
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "删除NFT失败",
           cause: error,
         });
       }

@@ -5,6 +5,8 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import '@/styles/globals.css';
+import { TRPCReactProvider } from "@/trpc/react";
+
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -28,8 +30,11 @@ export default function RootLayout({
         {/* 主容器 */}
         <div className="container mx-auto px-4 py-8">
           {/* 主内容区 */}
-          <main>{children}</main>
-          
+          <main>
+            <TRPCReactProvider>
+              {children}
+            </TRPCReactProvider>
+          </main>
           {/* 页脚 */}
           <footer className="mt-12 text-center text-gray-500 text-sm">
             <p>© {new Date().getFullYear()} NFT斗图游戏 - 版权所有</p>
