@@ -29,6 +29,7 @@ export default function Home() {
     imageData: string;
     name: string;
     power: number;
+    tokenId: string;
   } | null>(null);
 
   return (
@@ -79,6 +80,7 @@ export default function Home() {
           isConnected={isConnected}
           nft={selectedNFT}
           onSelectNFT={setSelectedNFT}
+          walletAddress={walletAddress}
         />
         <MarketSection 
           isConnected={isConnected}

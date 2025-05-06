@@ -10,6 +10,7 @@ interface NFTGalleryProps {
     imageData: string;
     name: string;
     power: number;
+    tokenId: string;
   }) => void;
 }
 
@@ -164,7 +165,8 @@ export default function NFTGallery({ isConnected, walletAddress, onSelectNFT }: 
                             onSelectNFT?.({
                               imageData: nft.imageData,
                               name: nft.name,
-                              power: nft.power
+                              power: nft.power,
+                              tokenId: nft.tokenId,
                             });
                           }}
                         >

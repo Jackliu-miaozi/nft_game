@@ -1,5 +1,6 @@
 import{ nftRouter } from "@/server/api/routers/nft";
 import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
+import { battleRouter } from "./routers/battle";
 
 /**
  * This is the primary router for your server.
@@ -8,6 +9,7 @@ import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
  */
 export const appRouter = createTRPCRouter({
   nft: nftRouter,
+  battle: battleRouter,
 });
 
 // export type definition of API

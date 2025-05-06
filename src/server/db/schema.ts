@@ -36,6 +36,12 @@ export const nftImages = createTable("nft_images", {
   createdAt: integer("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   // NFT最后更新时间
   updatedAt: integer("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  // 铸造NFT的链上交易哈希
+  txHash: text("tx_hash"),
+  // 铸造NFT所在区块号
+  blockNumber: integer("block_number"),
+  // 是否已上链
+  isOnChain: integer("is_on_chain").default(0),
 });
 
 // 创建索引以优化查询性能
