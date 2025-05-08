@@ -1,7 +1,7 @@
-import { publicClient, walletClient } from './blockchain'
-import NFTEmojiABI from 'contracts/NFTEmoji.json'
+import NFTEmojiABI from "contracts/NFTEmoji.json";
+import { publicClient, walletClient } from "./blockchain";
 
-const NFT_CONTRACT_ADDRESS = '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512' // 替换为您的合约地址
+const NFT_CONTRACT_ADDRESS = "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512"; // 替换为您的合约地址
 
 /**
  * 铸造NFT
@@ -12,30 +12,30 @@ const NFT_CONTRACT_ADDRESS = '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512' // 替
  * @param rarity 稀有度
  */
 export async function mintNFT(
-  to: string,
-  name: string,
-  tokenURI: string,
-  power: number,
-  rarity: number
+	to: string,
+	name: string,
+	tokenURI: string,
+	power: number,
+	rarity: number,
 ) {
-  // 准备交易请求
-  const { request } = await publicClient.simulateContract({
-    address: NFT_CONTRACT_ADDRESS,
-    abi: NFTEmojiABI.abi,
-    functionName: 'mint',
-    args: [to, name, tokenURI, BigInt(power), BigInt(rarity)],
-    account: walletClient.account
-  })
+	// 准备交易请求
+	const { request } = await publicClient.simulateContract({
+		address: NFT_CONTRACT_ADDRESS,
+		abi: NFTEmojiABI.abi,
+		functionName: "mint",
+		args: [to, name, tokenURI, BigInt(power), BigInt(rarity)],
+		account: walletClient.account,
+	});
 
-  // 发送交易
-  const txHash = await walletClient.writeContract(request)
-  
-  // 等待交易确认
-  const receipt = await publicClient.waitForTransactionReceipt({
-    hash: txHash
-  })
+	// 发送交易
+	const txHash = await walletClient.writeContract(request);
 
-  return receipt
+	// 等待交易确认
+	const receipt = await publicClient.waitForTransactionReceipt({
+		hash: txHash,
+	});
+
+	return receipt;
 }
 
 /**
@@ -43,10 +43,10 @@ export async function mintNFT(
  * @param tokenId NFT ID
  */
 export async function getNFT(tokenId: number) {
-  return publicClient.readContract({
-    address: NFT_CONTRACT_ADDRESS,
-    abi: NFTEmojiABI.abi,
-    functionName: 'tokenMeta',
-    args: [BigInt(tokenId)]
-  })
+	return publicClient.readContract({
+		address: NFT_CONTRACT_ADDRESS,
+		abi: NFTEmojiABI.abi,
+		functionName: "tokenMeta",
+		args: [BigInt(tokenId)],
+	});
 }

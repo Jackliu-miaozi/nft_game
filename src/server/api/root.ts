@@ -1,4 +1,4 @@
-import{ nftRouter } from "@/server/api/routers/nft";
+import { nftRouter } from "@/server/api/routers/nft";
 import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
 
 /**
@@ -7,7 +7,7 @@ import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
-  nft: nftRouter,
+	nft: nftRouter,
 });
 
 // export type definition of API

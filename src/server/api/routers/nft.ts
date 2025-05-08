@@ -1,9 +1,10 @@
-import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "../trpc";
-import { nftImages } from "../../db/schema";
-import { eq } from "drizzle-orm";
-import { TRPCError } from "@trpc/server";
 import { mintNFT } from "@/lib/nft";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import jwt from "jsonwebtoken";
+import { z } from "zod";
+import { nftImages } from "../../db/schema";
+import { createTRPCRouter, publicProcedure } from "../trpc";
 
 /**
  * NFT相关的tRPC路由
@@ -14,9 +15,11 @@ export const nftRouter = createTRPCRouter({
 	 * 获取指定钱包地址拥有的所有NFT
 	 */
 	getNFTsByOwner: publicProcedure
-		.input(z.object({
-			ownerAddress: z.string(),
-		}))
+		.input(
+			z.object({
+				ownerAddress: z.string(),
+			}),
+		)
 		.query(async ({ ctx, input }) => {
 			try {
 				const userNFTs = await ctx.db
@@ -38,9 +41,11 @@ export const nftRouter = createTRPCRouter({
 	 * 获取单个NFT的详细信息
 	 */
 	getNFTById: publicProcedure
-		.input(z.object({
-			tokenId: z.string(),
-		}))
+		.input(
+			z.object({
+				tokenId: z.string(),
+			}),
+		)
 		.query(async ({ ctx, input }) => {
 			try {
 				const nft = await ctx.db
@@ -71,29 +76,31 @@ export const nftRouter = createTRPCRouter({
 	 * 创建新的NFT
 	 */
 	createNFT: publicProcedure
-		.input(z.object({
-			tokenId: z.string(),
-			ownerAddress: z.string(),
-			imageData: z.string(),
-			name: z.string(),
-			description: z.string().optional(),
-			rarity: z.number().min(0).max(100),
-			power: z.number().min(0),
-			signature: z.string(),
-			message: z.string(),
-			messageHash: z.string()
-		}))
+		.input(
+			z.object({
+				tokenId: z.string(),
+				ownerAddress: z.string(),
+				imageData: z.string(),
+				name: z.string(),
+				description: z.string().optional(),
+				rarity: z.number().min(0).max(100),
+				power: z.number().min(0),
+				signature: z.string(),
+				message: z.string(),
+				messageHash: z.string(),
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
 			try {
 				// 1. 先在链上铸造NFT
-				const tokenId= await mintNFT(
-					`0x${input.ownerAddress.replace('0x', '')}`,
+				const tokenId = await mintNFT(
+					`0x${input.ownerAddress.replace("0x", "")}`,
 					input.name,
-					`ipfs://${input.messageHash}`, // 修改为IPFS URI格式
+					`ipfs://${input.messageHash}`,
 					input.power,
-					input.rarity
+					input.rarity,
 				);
-				console.log('返回的tokenId:', tokenId);
+
 				// 2. 将NFT信息存入数据库
 				const newNFT = await ctx.db
 					.insert(nftImages)
@@ -107,7 +114,31 @@ export const nftRouter = createTRPCRouter({
 						power: input.power,
 					})
 					.returning();
-				return newNFT[0];
+
+				// 3. 生成JWT令牌
+				if (!process.env.JWT_SECRET) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "JWT密钥未配置",
+					});
+				}
+
+				const token = jwt.sign(
+					{
+						address: input.ownerAddress,
+						tokenId: tokenId.transactionHash,
+					},
+					process.env.JWT_SECRET,
+					{
+						expiresIn: "1d",
+						algorithm: "HS256", // 显式指定算法
+					},
+				);
+
+				return {
+					...newNFT[0],
+					token,
+				};
 			} catch (error) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
@@ -121,10 +152,12 @@ export const nftRouter = createTRPCRouter({
 	 * 更新NFT所有者
 	 */
 	updateNFTOwner: publicProcedure
-		.input(z.object({
-			tokenId: z.string(),
-			newOwnerAddress: z.string(),
-		}))
+		.input(
+			z.object({
+				tokenId: z.string(),
+				newOwnerAddress: z.string(),
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
 			try {
 				const updatedNFT = await ctx.db
@@ -159,13 +192,15 @@ export const nftRouter = createTRPCRouter({
 	 * 只有NFT的所有者才能删除
 	 */
 	deleteNFT: publicProcedure
-		.input(z.object({
-			tokenId: z.string(),
-			ownerAddress: z.string(),
-			signature: z.string(),    // 签名
-			message: z.string(),      // 原始消息
-			messageHash: z.string()   // 消息哈希
-		}))
+		.input(
+			z.object({
+				tokenId: z.string(),
+				ownerAddress: z.string(),
+				signature: z.string(), // 签名
+				message: z.string(), // 原始消息
+				messageHash: z.string(), // 消息哈希
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
 			try {
 				// 首先检查NFT是否存在且属于该用户
@@ -206,4 +241,3 @@ export const nftRouter = createTRPCRouter({
 			}
 		}),
 });
-
