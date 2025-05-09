@@ -1,5 +1,8 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
 interface BattleSectionProps {
    isConnected: boolean;
    nft: {
@@ -25,6 +28,30 @@ export default function BattleSection({
    nft,
    onSelectNFT,
 }: BattleSectionProps) {
+   const router = useRouter();
+   const [betAmount, setBetAmount] = useState<string>("0.01");
+
+   /**
+    * 处理开始对战按钮点击
+    * 使用 localStorage 存储数据并跳转到对战页面
+    */
+   const handleStartBattle = () => {
+      if (!nft) return;
+      
+      // 将NFT信息存储到localStorage
+      const battleData = {
+         imageData: nft.imageData,
+         name: nft.name,
+         power: nft.power,
+         betAmount: betAmount
+      };
+      
+      localStorage.setItem('battleData', JSON.stringify(battleData));
+      
+      // 跳转到对战页面（不带参数）
+      router.push('/battle');
+   };
+
    return (
       <section>
          <h2 className="mb-6 font-bold text-2xl">开始对战</h2>
@@ -52,9 +79,27 @@ export default function BattleSection({
                         </button>
                      </div>
                   )}
+                  
+                  {nft && (
+                     <div className="mb-4">
+                        <label className="mb-2 block font-medium text-purple-200 text-sm">
+                           设置押金金额 (ETH)
+                        </label>
+                        <input
+                           type="number"
+                           value={betAmount}
+                           onChange={(e) => setBetAmount(e.target.value)}
+                           min="0.001"
+                           step="0.001"
+                           className="w-full rounded-lg border border-purple-500/30 bg-gray-700 p-2 text-gray-200 focus:border-purple-500 focus:outline-none"
+                        />
+                     </div>
+                  )}
+                  
                   <button
                      className={`rounded-full bg-pink-500 px-8 py-3 font-bold text-lg text-white transition-all hover:bg-pink-600 ${!nft ? "cursor-not-allowed opacity-50" : ""}`}
                      disabled={!nft}
+                     onClick={handleStartBattle}
                   >
                      开始斗图对战
                   </button>
