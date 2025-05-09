@@ -116,19 +116,28 @@ contract NFTEmoji {
 
     /// @notice 销毁NFT，仅限NFT拥有者调用
     /// @param tokenId 要销毁的NFT的tokenId
+    // 函数声明: public 可见性的 burn 函数,接收一个 uint256 类型的参数 tokenId
     function burn(uint256 tokenId) public {
+        // 1. 获取NFT所有者并验证调用者权限
+        // 调用 ownerOf 函数获取 tokenId 对应的所有者地址
         address owner = ownerOf(tokenId);
+        // require 语句检查调用者(msg.sender)是否为 NFT 所有者
         require(msg.sender == owner, "NFT: only owner can burn");
-
-        // 清除授权
+    
+        // 2. 清除该NFT的所有授权
+        // 调用内部函数 _approve 将授权地址设为零地址
         _approve(address(0), tokenId);
-
-        // 更新余额和拥有者映射
-        _balances[owner] -= 1;
-        delete _owners[tokenId];
-        delete _tokenMetas[tokenId];
-
-        emit Burn(owner, tokenId);
-        emit Transfer(owner, address(0), tokenId);
+    
+        // 3. 更新所有者余额和NFT状态
+        // 使用减法运算符更新所有者的 NFT 余额
+        _balances[owner] -= 1;  // 所有者NFT数量减1
+        // 使用 delete 关键字删除映射中的键值对
+        delete _owners[tokenId];  // 删除所有者映射
+        delete _tokenMetas[tokenId];  // 删除元数据
+    
+        // 4. 触发事件
+        // 使用 emit 关键字触发事件,传入相应参数
+        emit Burn(owner, tokenId);  // 自定义销毁事件
+        emit Transfer(owner, address(0), tokenId);  // ERC721标准转移事件
     }
 }

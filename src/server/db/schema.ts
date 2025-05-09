@@ -25,7 +25,7 @@ export const createTable = sqliteTableCreator((name) => `nft_game_${name}`);
 export const nftImages = createTable("nft_images", {
 	id: integer("id").primaryKey({ autoIncrement: true }),
 	// NFT的唯一标识符（链上token ID）
-	tokenId: text("token_id").notNull().unique(),
+	tokenId: integer("token_id").notNull().unique(),  // 修改为integer类型
 	// NFT所有者的钱包地址
 	ownerAddress: text("owner_address").notNull(),
 	// NFT图片数据（IPFS hash或者base64编码）

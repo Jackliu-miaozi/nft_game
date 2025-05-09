@@ -23,6 +23,7 @@ export default function MintSection({
 		description: "",
 	});
 	const [isUploading, setIsUploading] = useState(false);
+	const [currenttokenid, setCurrenttokenid] = useState<number>(1);
 	const utils = api.useUtils();
 
 	const createNFTMutation = api.nft.createNFT.useMutation({
@@ -30,6 +31,7 @@ export default function MintSection({
 			utils.nft.getNFTsByOwner.invalidate();
 			setForm({ image: null, name: "", description: "" });
 			setIsUploading(false);
+			setCurrenttokenid(prev => prev + 1);
 			alert("NFT铸造成功！");
 		},
 		onError: (error) => {
@@ -112,7 +114,7 @@ export default function MintSection({
 				.catch(() => Math.floor(Math.random() * 100));
 
 			const response = await createNFTMutation.mutateAsync({
-				tokenId: `${Date.now()}`,
+				tokenId: currenttokenid,
 				ownerAddress: walletAddress,
 				imageData: base64Image,
 				name: form.name,

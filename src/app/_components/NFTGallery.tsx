@@ -53,7 +53,7 @@ export default function NFTGallery({
 	 * @param tokenId NFT的唯一标识
 	 * @returns 待签名的消息
 	 */
-	const generateDeleteMessage = (tokenId: string) => {
+	const generateDeleteMessage = (tokenId: number) => {
 		return `删除NFT确认\n\nToken ID: ${tokenId}\n钱包地址: ${walletAddress}\n时间戳: ${Date.now()}\n\n此操作不可撤销`;
 	};
 
@@ -61,7 +61,7 @@ export default function NFTGallery({
 	 * 处理删除NFT的函数
 	 * 需要用户先进行签名确认
 	 */
-	const handleDeleteNFT = async (tokenId: string) => {
+	const handleDeleteNFT = async (tokenId: number) => {
 		if (!walletAddress) return;
 
 		if (confirm("确定要删除这个NFT吗？")) {
@@ -101,9 +101,6 @@ export default function NFTGallery({
 				await deleteNFTMutation.mutateAsync({
 					tokenId,
 					ownerAddress: walletAddress,
-					signature,
-					message,
-					messageHash,
 				});
 			} catch (error) {
 				console.error("删除NFT失败:", error);
