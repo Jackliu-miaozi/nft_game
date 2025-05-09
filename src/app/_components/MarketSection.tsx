@@ -11,7 +11,6 @@ interface MarketSectionProps {
  */
 export default function MarketSection({
 	isConnected,
-	walletAddress,
 }: MarketSectionProps) {
 	return (
 		<section className="mt-12">
