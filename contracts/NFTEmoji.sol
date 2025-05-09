@@ -1,143 +1,44 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-/// @title NFTEmoji - 一个简单的 ERC721 NFT 合约（不依赖合约库）
+// 导入OpenZeppelin的ERC721标准合约
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+// 导入可销毁扩展
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
+// 导入所有权管理模块
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+/// @title NFTEmoji - 标准ERC721 NFT合约（可存储power值）
 /// @author Jack
-/// @notice 支持 NFT 的铸造、转移、元数据存储
+/// @notice 支持NFT的铸造、销毁、所有权管理，并记录每个NFT的power值
+contract NFTEmoji is ERC721, ERC721Burnable, Ownable(msg.sender) {
+    uint256 private _tokenIdCounter;
 
-contract NFTEmoji {
-    // NFT 结构体，包含自定义元数据
-    struct NFTMeta {
-        string name;
-        string tokenURI;
-        uint256 power;
-        uint256 rarity;
-    }
+    // 新增：用于存储每个tokenId对应的power值
+    // mapping(tokenId => powerValue)
+    mapping(uint256 => uint256) public tokenPower;
 
-    // tokenId 到拥有者的映射
-    mapping(uint256 => address) private _owners;
-    // 拥有者到 NFT 数量的映射
-    mapping(address => uint256) private _balances;
-    // tokenId 到授权地址的映射
-    mapping(uint256 => address) private _tokenApprovals;
-    // tokenId 到元数据的映射
-    mapping(uint256 => NFTMeta) private _tokenMetas;
+    // 新增：当NFT的power值被设置时触发的事件
+    // indexed关键字用于将事件参数标记为索引参数
+    // 被标记为indexed的参数会被存储在以太坊区块链的日志结构中
+    // 这样可以更高效地过滤和查询包含特定tokenId的事件
+    // 每个事件最多可以有3个indexed参数
 
-    // 总供应量
-    uint256 private _totalSupply;
+    /// @dev 构造函数，初始化合约名称和符号
+    constructor() ERC721("NFTEmoji", "EMOJI") {}
 
-    // 事件定义
-    event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
-    event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
+    /// @notice 铸造NFT，并设置其power值，仅限合约拥有者
+    /// @param to 接收者地址
+    /// @param power NFT的能量值
+    function mint(address to, uint256 power) public onlyOwner {
+        require(to != address(0), "NFTEmoji: mint to the zero address");
+        _tokenIdCounter += 1;
+        uint256 newTokenId = _tokenIdCounter; // 获取新的tokenId
+        _mint(to, newTokenId); // 铸造NFT
 
-    /// @notice 查询 NFT 拥有者
-    function ownerOf(uint256 tokenId) public view returns (address) {
-        address owner = _owners[tokenId];
-        require(owner != address(0), "NFT: owner query for nonexistent token");
-        return owner;
-    }
-
-    /// @notice 查询拥有者 NFT 数量
-    function balanceOf(address owner) public view returns (uint256) {
-        require(owner != address(0), "NFT: balance query for zero address");
-        return _balances[owner];
-    }
-
-    /// @notice 查询 NFT 元数据
-    function tokenMeta(uint256 tokenId) public view returns (NFTMeta memory) {
-        require(_owners[tokenId] != address(0), "NFT: meta query for nonexistent token");
-        return _tokenMetas[tokenId];
-    }
-
-    /// @notice 铸造 NFT，只有合约部署者可调用
-    function mint(
-        address to,
-        string memory name,
-        string memory tokenURI,
-        uint256 power,
-        uint256 rarity
-    ) public returns (uint256) {
-        require(to != address(0), "NFT: mint to zero address");
-        uint256 tokenId = ++_totalSupply;
-        require(_owners[tokenId] == address(0), "NFT: token already minted");
-
-        _owners[tokenId] = to;
-        _balances[to] += 1;
-        _tokenMetas[tokenId] = NFTMeta(name, tokenURI, power, rarity);
-
-        emit Transfer(address(0), to, tokenId);
-        return tokenId;
-    }
-
-    /// @notice 转移 NFT
-    function transferFrom(address from, address to, uint256 tokenId) public {
-        require(_isApprovedOrOwner(msg.sender, tokenId), "NFT: not owner nor approved");
-        require(ownerOf(tokenId) == from, "NFT: transfer from incorrect owner");
-        require(to != address(0), "NFT: transfer to zero address");
-
-        _approve(address(0), tokenId);
-
-        _balances[from] -= 1;
-        _balances[to] += 1;
-        _owners[tokenId] = to;
-
-        emit Transfer(from, to, tokenId);
-    }
-
-    /// @notice 授权 NFT
-    function approve(address to, uint256 tokenId) public {
-        address owner = ownerOf(tokenId);
-        require(to != owner, "NFT: approval to current owner");
-        require(msg.sender == owner, "NFT: approve caller is not owner");
-
-        _approve(to, tokenId);
-    }
-
-    /// @notice 查询授权地址
-    function getApproved(uint256 tokenId) public view returns (address) {
-        require(_owners[tokenId] != address(0), "NFT: approved query for nonexistent token");
-        return _tokenApprovals[tokenId];
-    }
-
-    /// @dev 内部授权函数
-    function _approve(address to, uint256 tokenId) internal {
-        _tokenApprovals[tokenId] = to;
-        emit Approval(ownerOf(tokenId), to, tokenId);
-    }
-
-    /// @dev 判断是否为 owner 或授权地址
-    function _isApprovedOrOwner(address spender, uint256 tokenId) internal view returns (bool) {
-        address owner = ownerOf(tokenId);
-        return (spender == owner || getApproved(tokenId) == spender);
-    }
-
-    // 新增事件：销毁NFT
-    event Burn(address indexed owner, uint256 indexed tokenId);
-
-    /// @notice 销毁NFT，仅限NFT拥有者调用
-    /// @param tokenId 要销毁的NFT的tokenId
-    // 函数声明: public 可见性的 burn 函数,接收一个 uint256 类型的参数 tokenId
-    function burn(uint256 tokenId) public {
-        // 1. 获取NFT所有者并验证调用者权限
-        // 调用 ownerOf 函数获取 tokenId 对应的所有者地址
-        address owner = ownerOf(tokenId);
-        // require 语句检查调用者(msg.sender)是否为 NFT 所有者
-        require(msg.sender == owner, "NFT: only owner can burn");
-    
-        // 2. 清除该NFT的所有授权
-        // 调用内部函数 _approve 将授权地址设为零地址
-        _approve(address(0), tokenId);
-    
-        // 3. 更新所有者余额和NFT状态
-        // 使用减法运算符更新所有者的 NFT 余额
-        _balances[owner] -= 1;  // 所有者NFT数量减1
-        // 使用 delete 关键字删除映射中的键值对
-        delete _owners[tokenId];  // 删除所有者映射
-        delete _tokenMetas[tokenId];  // 删除元数据
-    
-        // 4. 触发事件
-        // 使用 emit 关键字触发事件,传入相应参数
-        emit Burn(owner, tokenId);  // 自定义销毁事件
-        emit Transfer(owner, address(0), tokenId);  // ERC721标准转移事件
+        // 新增：设置并存储新铸造NFT的power值
+        // 使用映射语法将power值存储到tokenPower映射中，其中newTokenId作为键，power作为值
+        tokenPower[newTokenId] = power;
+        // 新增：触发PowerSet事件
     }
 }

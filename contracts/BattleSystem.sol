@@ -20,6 +20,8 @@ contract BattleSystem {
     struct Battle {
         address player1; // 玩家1地址
         address player2; // 玩家2地址
+        uint256 power1; //  玩家1nft搞笑值
+        uint256 power2; //  玩家2nft搞笑值
         uint256 nftId1; // 玩家1的NFT ID
         uint256 nftId2; // 玩家2的NFT ID
         uint256 player1BetAmount; // 玩家1的押金金额
@@ -96,11 +98,16 @@ contract BattleSystem {
         // 将押金从玩家1转移到合约
         IERC20(gameToken).transferFrom(msg.sender, address(this), _player1BetAmount);
 
+        // 获取玩家1 NFT的power值
+        uint256 player1Power = NFTEmoji(nftContract).tokenPower(_nftId1);
+
         uint256 battleId = battles.length;
         battles.push(
             Battle({
                 player1: msg.sender,
                 player2: address(0), // 玩家2尚未加入
+                power1: player1Power, // 存储玩家1的NFT power值
+                power2: 0, // 玩家2的NFT power值尚未设置
                 nftId1: _nftId1,
                 nftId2: 0, // 玩家2的NFT ID尚未设置
                 player1BetAmount: _player1BetAmount,
@@ -140,27 +147,54 @@ contract BattleSystem {
         // 将押金从玩家2转移到合约
         IERC20(gameToken).transferFrom(msg.sender, address(this), _player2BetAmount);
 
+        // 获取玩家2 NFT的power值
+        uint256 player2Power = NFTEmoji(nftContract).tokenPower(_nftId2);
+
         // 更新对战信息
         battle.player2 = msg.sender;
         battle.nftId2 = _nftId2;
         battle.player2BetAmount = _player2BetAmount;
+        battle.power2 = player2Power; // 存储玩家2的NFT power值
 
-        // 判定胜负
+        // 判定胜负 - 比较双方NFT的power值
         address actualWinner;
-        if (battle.player2BetAmount > battle.player1BetAmount) {
-            actualWinner = battle.player2; // 玩家2押金多，玩家2胜
+        uint256 rewardAmountToWinner = 0; // 初始化获胜者奖励金额
+
+        if (battle.power2 > battle.power1) {
+            // 玩家2的NFT power更高，玩家2胜
+            actualWinner = battle.player2;
+            battle.winner = actualWinner;
+
+            // 计算总押金和奖励
+            uint256 totalBetAmount = battle.player1BetAmount + battle.player2BetAmount;
+            uint256 feeAmount = (totalBetAmount * feePercent) / 100;
+            rewardAmountToWinner = totalBetAmount - feeAmount;
+
+            // 将奖励转给获胜者
+            IERC20(gameToken).transfer(actualWinner, rewardAmountToWinner);
+        } else if (battle.power1 > battle.power2) {
+            // 玩家1的NFT power更高，玩家1胜
+            actualWinner = battle.player1;
+            battle.winner = actualWinner;
+
+            // 计算总押金和奖励
+            uint256 totalBetAmount = battle.player1BetAmount + battle.player2BetAmount;
+            uint256 feeAmount = (totalBetAmount * feePercent) / 100;
+            rewardAmountToWinner = totalBetAmount - feeAmount;
+
+            // 将奖励转给获胜者
+            IERC20(gameToken).transfer(actualWinner, rewardAmountToWinner);
         } else {
-            actualWinner = battle.player1; // 玩家1押金多或相等，玩家1胜
+            //双方NFT power值相等，平局
+            actualWinner = address(0); // 使用地址0表示平局
+            battle.winner = actualWinner;
+
+            // 退还玩家1的押金
+            IERC20(gameToken).transfer(battle.player1, battle.player1BetAmount);
+            // 退还玩家2的押金
+            IERC20(gameToken).transfer(battle.player2, battle.player2BetAmount);
+            // rewardAmountToWinner 保持为0，因为是平局，没有额外奖励
         }
-        battle.winner = actualWinner;
-
-        // 计算总押金和奖励
-        uint256 totalBetAmount = battle.player1BetAmount + battle.player2BetAmount;
-        uint256 feeAmount = (totalBetAmount * feePercent) / 100;
-        uint256 rewardAmountToWinner = totalBetAmount - feeAmount;
-
-        // 将奖励转给获胜者
-        IERC20(gameToken).transfer(actualWinner, rewardAmountToWinner);
 
         // 更新对战最终状态
         battle.status = BattleStatus.Completed;
@@ -171,8 +205,8 @@ contract BattleSystem {
             battle.player2,
             battle.nftId2,
             battle.player2BetAmount,
-            actualWinner,
-            rewardAmountToWinner
+            actualWinner, // 在平局情况下，这里会是 address(0)
+            rewardAmountToWinner // 在平局情况下，这里会是 0
         );
     }
 
