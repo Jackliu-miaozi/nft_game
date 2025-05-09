@@ -10,13 +10,14 @@ const NFT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS; // �
  */
 export async function mintNFT(
 	to: string,
+	power: number,
 ) {
 	// 准备交易请求
 	const { request } = await publicClient.simulateContract({
 		address: NFT_CONTRACT_ADDRESS as `0x${string}`,
 		abi: NFTEmojiABI.abi,
 		functionName: "mint",
-		args: [to], // 只传入接收地址参数
+		args: [to, power], // 只传入接收地址参数
 		account: walletClient.account,
 	});
 

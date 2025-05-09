@@ -95,6 +95,7 @@ export const nftRouter = createTRPCRouter({
 				// 1. 先在链上铸造NFT
 				const response = await mintNFT(
 					input.ownerAddress,
+					input.power // 添加power参数
 				);
 				if (response.status !== "success") {
 					throw new TRPCError({
